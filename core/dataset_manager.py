@@ -58,9 +58,18 @@ class DatasetManager:
                 'description': '10类自然图像数据集，包含60000张32x32彩色图像',
                 'type': 'image',
                 'classes': 10,
-                'samples': 60000,
-                'input_shape': (32, 32, 3),
+               'samples': 60000,
+                'input_shape': (3, 32, 32),  # 修正：通道数在前
                 'class_names': ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+            },
+            'CIFAR-100': {
+                'name': 'CIFAR-100',
+                'description': '100类自然图像数据集，包含60000张32x32彩色图像，每类600张图像',
+                'type': 'image',
+                'classes': 100,
+                'samples': 60000,
+                'input_shape': (3, 32, 32),  # 修正：通道数在前
+                'class_names': ['apple', 'aquarium_fish', 'baby', 'bear', 'beaver', 'bed', 'bee', 'beetle', 'bicycle', 'bottle', 'bowl', 'boy', 'bridge', 'bus', 'butterfly', 'camel', 'can', 'castle', 'caterpillar', 'cattle', 'chair', 'chimpanzee', 'clock', 'cloud', 'cockroach', 'couch', 'crab', 'crocodile', 'cup', 'dinosaur', 'dolphin', 'elephant', 'flatfish', 'forest', 'fox', 'girl', 'hamster', 'house', 'kangaroo', 'keyboard', 'lamp', 'lawn_mower', 'leopard', 'lion', 'lizard', 'lobster', 'man', 'maple_tree', 'motorcycle', 'mountain', 'mouse', 'mushroom', 'oak_tree', 'orange', 'orchid', 'otter', 'palm_tree', 'pear', 'pickup_truck', 'pine_tree', 'plain', 'plate', 'poppy', 'porcupine', 'possum', 'rabbit', 'raccoon', 'ray', 'road', 'rocket', 'rose', 'sea', 'seal', 'shark', 'shrew', 'skunk', 'skyscraper', 'snail', 'snake', 'spider', 'squirrel', 'streetcar', 'sunflower', 'sweet_pepper', 'table', 'tank', 'telephone', 'television', 'tiger', 'tractor', 'train', 'trout', 'tulip', 'turtle', 'wardrobe', 'whale', 'willow_tree', 'wolf', 'woman', 'worm']
             },
             'MNIST': {
                 'name': 'MNIST',
@@ -68,7 +77,7 @@ class DatasetManager:
                 'type': 'image',
                 'classes': 10,
                 'samples': 70000,
-                'input_shape': (28, 28, 1),
+                'input_shape': (1, 28, 28),  # 修正：通道数在前
                 'class_names': ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
             },
             'Fashion-MNIST': {
@@ -77,7 +86,7 @@ class DatasetManager:
                 'type': 'image',
                 'classes': 10,
                 'samples': 70000,
-                'input_shape': (28, 28, 1),
+                'input_shape': (1, 28, 28),  # 修正：通道数在前
                 'class_names': ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
             }
         }
@@ -392,6 +401,21 @@ class DatasetManager:
                                               download=True, transform=transform)
                     
                     return True, trainset, testset, "CIFAR-10数据集加载成功"
+            
+            elif dataset_name == 'CIFAR-100':
+                if TORCH_AVAILABLE:
+                    transform = transforms.Compose([
+                        transforms.ToTensor(),
+                        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                    ])
+                    
+                    # 下载并加载CIFAR-100
+                    trainset = datasets.CIFAR100(root=str(self.builtin_datasets_dir), train=True,
+                                                download=True, transform=transform)
+                    testset = datasets.CIFAR100(root=str(self.builtin_datasets_dir), train=False,
+                                               download=True, transform=transform)
+                    
+                    return True, trainset, testset, "CIFAR-100数据集加载成功"
                 
             elif dataset_name == 'MNIST':
                 if TORCH_AVAILABLE:

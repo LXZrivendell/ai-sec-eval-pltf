@@ -690,3 +690,127 @@ L∞范数 (最大扰动): {result['results']['perturbation_stats']['linf_norm']
         except Exception as e:
             st.error(f"获取用户已完成评估失败: {str(e)}")
             return []
+    
+    def start_evaluation(self, evaluation_config: Dict) -> str:
+        """启动安全评估"""
+        try:
+            # 直接调用现有的评估方法
+            result = self.evaluate_model_robustness(
+                evaluation_config['model'],
+                evaluation_config['dataset'], 
+                evaluation_config['attack_config'],
+                evaluation_config.get('evaluation_params', {})
+            )
+            
+            if 'error' in result:
+                st.error(f"评估失败: {result['error']}")
+                return None
+            
+            return result.get('evaluation_id')
+            
+        except Exception as e:
+            st.error(f"启动评估失败: {str(e)}")
+            return None
+    
+    def get_all_evaluations(self) -> List[Dict]:
+        """获取所有评估（管理员用）"""
+        try:
+            evaluations = []
+            for filename in os.listdir(self.results_dir):
+                if filename.endswith('.json'):
+                    result_file = os.path.join(self.results_dir, filename)
+                    with open(result_file, 'r', encoding='utf-8') as f:
+                        result = json.load(f)
+                        
+                        # 转换为页面期望的格式
+                        evaluation = {
+                            'id': result.get('evaluation_id'),
+                            'name': f"{result.get('model_info', {}).get('name', 'Unknown')} vs {result.get('attack_config', {}).get('algorithm_name', 'Unknown')}",
+                            'type': 'security_evaluation',
+                            'status': '已完成',  # 所有保存的评估都是已完成的
+                            'created_at': result.get('timestamp'),
+                            'completed_at': result.get('timestamp'),
+                            'description': f"使用 {result.get('attack_config', {}).get('algorithm_name', 'Unknown')} 攻击算法对 {result.get('model_info', {}).get('name', 'Unknown')} 模型进行安全评估",
+                            'results': result.get('results', {}),
+                            'config': {
+                                'model': result.get('model_info', {}),
+                                'dataset': result.get('dataset_info', {}),
+                                'attack_configs': [result.get('attack_config', {})]
+                            }
+                        }
+                        evaluations.append(evaluation)
+            
+            return sorted(evaluations, key=lambda x: x.get('created_at', ''), reverse=True)
+            
+        except Exception as e:
+            st.error(f"获取所有评估失败: {str(e)}")
+            return []
+    
+    def get_user_evaluations(self, user_id: str) -> List[Dict]:
+        """获取指定用户的评估"""
+        try:
+            evaluations = []
+            for filename in os.listdir(self.results_dir):
+                if filename.endswith('.json'):
+                    result_file = os.path.join(self.results_dir, filename)
+                    with open(result_file, 'r', encoding='utf-8') as f:
+                        result = json.load(f)
+                        
+                        # 检查是否属于指定用户
+                        if result.get('model_info', {}).get('uploader') == user_id:
+                            # 转换为页面期望的格式
+                            evaluation = {
+                                'id': result.get('evaluation_id'),
+                                'name': f"{result.get('model_info', {}).get('name', 'Unknown')} vs {result.get('attack_config', {}).get('algorithm_name', 'Unknown')}",
+                                'type': 'security_evaluation',
+                                'status': '已完成',  # 所有保存的评估都是已完成的
+                                'created_at': result.get('timestamp'),
+                                'completed_at': result.get('timestamp'),
+                                'description': f"使用 {result.get('attack_config', {}).get('algorithm_name', 'Unknown')} 攻击算法对 {result.get('model_info', {}).get('name', 'Unknown')} 模型进行安全评估",
+                                'results': result.get('results', {}),
+                                'config': {
+                                    'model': result.get('model_info', {}),
+                                    'dataset': result.get('dataset_info', {}),
+                                    'attack_configs': [result.get('attack_config', {})]
+                                }
+                            }
+                            evaluations.append(evaluation)
+            
+            return sorted(evaluations, key=lambda x: x.get('created_at', ''), reverse=True)
+            
+        except Exception as e:
+            st.error(f"获取用户评估失败: {str(e)}")
+            return []
+    
+    def delete_evaluation(self, evaluation_id: str, user_id: str) -> bool:
+        """删除评估记录"""
+        try:
+            result_file = os.path.join(self.results_dir, f"{evaluation_id}.json")
+            
+            if os.path.exists(result_file):
+                # 检查权限（非管理员只能删除自己的评估）
+                with open(result_file, 'r', encoding='utf-8') as f:
+                    result = json.load(f)
+                    
+                # 这里应该从session state或其他地方获取用户角色
+                # 暂时假设可以删除
+                model_uploader = result.get('model_info', {}).get('uploader')
+                if model_uploader == user_id or user_id == 'admin':  # 简化的权限检查
+                    os.remove(result_file)
+                    
+                    # 同时删除对抗样本文件（如果存在）
+                    samples_file = os.path.join(self.results_dir, f"{evaluation_id}_samples.npz")
+                    if os.path.exists(samples_file):
+                        os.remove(samples_file)
+                    
+                    return True
+                else:
+                    st.error("权限不足：只能删除自己的评估记录")
+                    return False
+            else:
+                st.error("评估记录不存在")
+                return False
+                
+        except Exception as e:
+            st.error(f"删除评估记录失败: {str(e)}")
+            return False

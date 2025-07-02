@@ -144,25 +144,30 @@ with col1:
                 else:
                     st.info("📊 暂无存储数据可显示")
             else:
+                # 当没有数据时，显示实际的存储使用情况表格
                 st.info("📊 当前系统中暂无数据文件，存储使用量为0")
                 
-                # 显示一个示例饼状图
-                example_data = {
-                    '类型': ['模型', '数据集', '报告', '结果'],
-                    '大小(MB)': [0.1, 0.1, 0.1, 0.1]  # 示例数据
-                }
-                fig_example = px.pie(
-                    values=example_data['大小(MB)'],
-                    names=example_data['类型'],
-                    title="存储空间分布（示例）"
+                # 显示详细的存储统计表格
+                storage_df = pd.DataFrame({
+                    '存储类型': ['模型', '数据集', '报告', '结果'],
+                    '大小(MB)': [model_size, dataset_size, report_size, result_size],
+                    '占比': ['0%', '0%', '0%', '0%']
+                })
+                
+                st.dataframe(
+                    storage_df,
+                    use_container_width=True,
+                    hide_index=True
                 )
-                fig_example.update_traces(textposition='inside', textinfo='percent+label')
-                fig_example.update_layout(
-                    showlegend=True,
-                    height=400,
-                    margin=dict(t=50, b=50, l=50, r=50)
-                )
-                st.plotly_chart(fig_example, use_container_width=True)
+                
+                # 提示用户如何开始使用
+                st.markdown("""
+                💡 **开始使用提示**：
+                - 📤 上传模型文件到系统
+                - 📊 添加数据集
+                - 🛡️ 执行安全评估生成报告
+                - 📈 查看存储使用情况变化
+                """)
                 
         except Exception as e:
             st.error(f"生成存储统计图表时出错: {str(e)}")

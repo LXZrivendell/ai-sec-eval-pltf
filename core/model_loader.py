@@ -53,13 +53,22 @@ class ModelLoader:
         try:
             if model_type == 'PyTorch':
                 # 验证PyTorch模型
-                model = torch.load(file_path, map_location='cpu')
-                if hasattr(model, 'state_dict'):
-                    return True, "PyTorch模型验证成功"
-                elif isinstance(model, dict):
-                    return True, "PyTorch状态字典验证成功"
-                else:
-                    return True, "PyTorch模型文件验证成功"
+                try:
+                    # 首先尝试weights_only=True（安全模式）
+                    model = torch.load(file_path, map_location='cpu', weights_only=True)
+                    return True, "PyTorch权重文件验证成功"
+                except Exception as e:
+                    # 如果失败，尝试加载完整模型（包含架构）
+                    try:
+                        model = torch.load(file_path, map_location='cpu', weights_only=False)
+                        if hasattr(model, 'state_dict'):
+                            return True, "PyTorch完整模型验证成功"
+                        elif isinstance(model, dict):
+                            return True, "PyTorch状态字典验证成功"
+                        else:
+                            return True, "PyTorch模型文件验证成功"
+                    except Exception as e2:
+                        return False, f"PyTorch模型验证失败: {str(e2)}"
             
             elif model_type in ['Keras/TensorFlow', 'Keras']:
                 # 验证Keras/TensorFlow模型
@@ -272,7 +281,12 @@ class ModelLoader:
             
             # 根据类型加载模型
             if model_type == 'PyTorch':
-                model = torch.load(file_path, map_location='cpu')
+                try:
+                    # 首先尝试weights_only=True
+                    model = torch.load(file_path, map_location='cpu', weights_only=True)
+                except:
+                    # 如果失败，使用weights_only=False加载完整模型
+                    model = torch.load(file_path, map_location='cpu', weights_only=False)
             elif model_type in ['Keras/TensorFlow', 'Keras']:
                 model = tf.keras.models.load_model(file_path)
             elif model_type == 'TensorFlow':

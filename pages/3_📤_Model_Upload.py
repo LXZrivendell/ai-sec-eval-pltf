@@ -178,14 +178,25 @@ def upload_model_interface():
                         
                         # 更新会话状态
                         st.session_state.uploaded_model = model_id
+                        st.session_state.upload_success = True  # 添加成功标志
                         
                         # 显示下一步提示
                         st.info("🎯 模型上传成功！您现在可以选择数据集进行安全评估。")
                         
-                        if st.button("📊 前往数据集管理"):
-                            st.switch_page("pages/4_📊_Dataset_Manager.py")
+                        # 移除这里的按钮，因为它在表单内部
+                        # if st.button("📊 前往数据集管理"):
+                        #     st.switch_page("pages/4_📊_Dataset_Manager.py")
                     else:
                         st.error(f"❌ {message}")
+
+    # 在表单外部处理上传成功后的导航
+    if st.session_state.get('upload_success', False):
+        st.markdown("---")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            if st.button("📊 前往数据集管理", use_container_width=True):
+                st.session_state.upload_success = False  # 重置标志
+                st.switch_page("pages/4_📊_Dataset_Manager.py")
 
 def my_models_interface():
     """我的模型界面"""

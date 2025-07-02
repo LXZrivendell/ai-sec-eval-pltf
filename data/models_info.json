@@ -1,1 +1,17 @@
-{}
+{
+  "admin_Resnet-18_20250702_151649": {
+    "model_name": "Resnet-18",
+    "description": "ResNet18 是微软研究院提出的一种深度卷积神经网络（CNN），属于 ResNet 系列，用于解决深度网络的梯度消失和退化问题。\n（1）用途：主要用于图像分类、特征提取、迁移学习，广泛应用于目标检测、图像分割等计算机视觉任务。\n（2）架构：包含 18 层（17 卷积层 + 1 全连接层），采用残差连接（skip connections）跳跃结构，分为 5 个阶段（1 个初始卷积 + 4 个残差块，每个块 2 个卷积层）。\n（3）训练数据：通常在 ImageNet 数据集（约 1400 万张图像，1000 类）上预训练，也可根据任务在自定义数据集上微调。\n（4）特点：轻量高效，适合资源受限场景，易于迁移学习，鲁棒性强。\n\n",
+    "model_type": "PyTorch",
+    "file_name": "admin_Resnet-18_20250702_151649.pth",
+    "file_path": "data/models/admin_Resnet-18_20250702_151649.pth",
+    "file_size": 46848651,
+    "file_hash": "8af49a7279d66671446d3572a7315ecf",
+    "uploaded_by": "admin",
+    "upload_time": "2025-07-02T15:16:49.166204",
+    "validation_status": "valid",
+    "validation_message": "PyTorch完整模型验证成功",
+    "last_modified": "2025-07-02T15:21:10.860183",
+    "modified_by": "admin"
+  }
+}

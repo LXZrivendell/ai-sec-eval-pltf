@@ -51,7 +51,6 @@ data/evaluation_results/
 data/reports/
 data/results/
 data/logs/
-models/
 reports/
 
 # 保留配置文件但忽略用户数据
