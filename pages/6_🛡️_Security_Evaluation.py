@@ -196,24 +196,41 @@ if function_choice == "新建评估":
     
     else:  # 我的数据集
         if user_role == 'admin':
-            user_datasets = dataset_manager.get_all_datasets()
+            # 管理员模式：获取所有用户上传的数据集（不包括内置数据集）
+            datasets_info = dataset_manager.load_datasets_info()
+            user_datasets = []
+            for dataset_id, info in datasets_info.items():
+                if not info.get('is_builtin', False):  # 排除内置数据集
+                    dataset_data = {
+                        'id': dataset_id,
+                        'name': info.get('dataset_name', 'Unknown'),
+                        'data_type': info.get('dataset_type', 'Unknown'),
+                        'type': info.get('dataset_type', 'Unknown'),
+                        'description': info.get('description', ''),
+                        'file_size': info.get('file_size', 0),
+                        'upload_time': info.get('upload_time', ''),
+                        'uploaded_by': info.get('uploaded_by', ''),
+                        'file_path': info.get('file_path', ''),
+                        'shape': info.get('metadata', {}).get('shape', 'N/A')
+                    }
+                    user_datasets.append(dataset_data)
         else:
             user_datasets = dataset_manager.get_user_datasets(user_id)
         
         if user_datasets:
-            # 将字典格式转换为列表格式进行处理
+            # user_datasets 是一个列表，不需要使用 .items()
             dataset_list = []
-            for dataset_id, dataset_info in user_datasets.items():
-                dataset_data = {
-                    'id': dataset_id,
-                    'name': dataset_info.get('name', 'Unknown'),
-                    'data_type': dataset_info.get('data_type', dataset_info.get('type', 'Unknown')),
-                    'description': dataset_info.get('description', ''),
-                    'file_size': dataset_info.get('file_size', 0),
-                    'shape': dataset_info.get('shape', ''),
-                    'file_path': dataset_info.get('file_path', '')
+            for dataset_data in user_datasets:  # 直接遍历列表
+                dataset_info = {
+                    'id': dataset_data.get('id'),
+                    'name': dataset_data.get('name', 'Unknown'),
+                    'data_type': dataset_data.get('data_type', dataset_data.get('type', 'Unknown')),
+                    'description': dataset_data.get('description', ''),
+                    'file_size': dataset_data.get('file_size', 0),
+                    'shape': dataset_data.get('shape', ''),
+                    'file_path': dataset_data.get('file_path', '')
                 }
-                dataset_list.append(dataset_data)
+                dataset_list.append(dataset_info)
             
             dataset_options = {f"{ds['name']} ({ds['data_type']})":
                              ds for ds in dataset_list}
@@ -239,14 +256,32 @@ if function_choice == "新建评估":
             with col1:
                 st.write(f"**数据集名称**: {selected_dataset['name']}")
                 st.write(f"**数据类型**: {selected_dataset.get('data_type', 'N/A')}")
-                if 'shape' in selected_dataset:
-                    st.write(f"**数据形状**: {selected_dataset['shape']}")
+                # 修复：正确显示数据形状
+                shape_info = selected_dataset.get('shape', 'N/A')
+                if shape_info == 'N/A' and 'input_shape' in selected_dataset:
+                    # 从input_shape构建形状信息
+                    input_shape = selected_dataset['input_shape']
+                    samples = selected_dataset.get('samples', 'N')
+                    if input_shape:
+                        shape_info = f"({samples}, {', '.join(map(str, input_shape))})"
+                st.write(f"**数据形状**: {shape_info}")
             
             with col2:
                 if 'description' in selected_dataset:
                     st.write(f"**描述**: {selected_dataset['description']}")
-                if 'file_size' in selected_dataset:
-                    st.write(f"**文件大小**: {selected_dataset['file_size'] / (1024*1024):.2f} MB")
+                # 修复：正确显示文件大小
+                file_size = selected_dataset.get('file_size', 0)
+                if file_size > 0:
+                    size_mb = file_size / (1024*1024)
+                    st.write(f"**文件大小**: {size_mb:.2f} MB")
+                else:
+                    st.write(f"**文件大小**: 计算中...")
+                
+                # 显示额外信息
+                if 'samples' in selected_dataset:
+                    st.write(f"**样本数量**: {selected_dataset['samples']:,}")
+                if 'classes' in selected_dataset:
+                    st.write(f"**类别数量**: {selected_dataset['classes']}")
     
     st.markdown("---")
     

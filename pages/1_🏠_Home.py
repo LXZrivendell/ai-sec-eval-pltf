@@ -303,8 +303,8 @@ with col3:
     with st.expander("🛠️ 技术支持"):
         st.markdown("""
         如遇问题，请联系：
-        - 📧 support@ai-sec-eval.com
-        - 📞 400-123-4567
+        - 📧 support@ntlxz1001@163.com
+        - 📞 13755161660
         - 💬 在线客服
         """)
 
@@ -327,6 +327,6 @@ with st.container():
 st.markdown("""
 ---
 <div style='text-align: center; color: #666;'>
-    <p>AI模型安全评估平台 | 版权所有 © 2024 | 技术支持: AI Security Team</p>
+    <p>AI模型安全评估平台 | 版权所有 © 2025 | 技术支持: 刘行至🔗ntlxz1001@163.com🐙GitHub：LXZrivendell</p>
 </div>
 """, unsafe_allow_html=True)

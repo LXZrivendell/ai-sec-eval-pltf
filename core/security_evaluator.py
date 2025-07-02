@@ -42,11 +42,22 @@ class SecurityEvaluator:
         """创建ART估计器"""
         try:
             model_path = model_info['file_path']
-            model_type = model_info['model_type']
+            model_type = model_info['model_type'].lower()  # 转换为小写进行比较
             
             if model_type == 'pytorch':
                 # 加载PyTorch模型
-                model = torch.load(model_path, map_location='cpu')
+                try:
+                    # 首先尝试 weights_only=True（安全模式）
+                    model = torch.load(model_path, map_location='cpu', weights_only=True)
+                except Exception:
+                    # 如果失败，尝试 weights_only=False（兼容完整模型）
+                    model = torch.load(model_path, map_location='cpu', weights_only=False)
+                
+                # 如果加载的是 state_dict，需要先创建模型架构
+                if isinstance(model, dict):
+                    st.error("检测到权重文件，但缺少模型架构。请上传完整的模型文件。")
+                    return None
+                
                 model.eval()
                 
                 # 创建损失函数
@@ -64,7 +75,7 @@ class SecurityEvaluator:
                     nb_classes=model_info.get('num_classes', 10)
                 )
                 
-            elif model_type in ['tensorflow', 'keras']:
+            elif model_type in ['tensorflow', 'keras', 'keras/tensorflow']:
                 # 加载TensorFlow/Keras模型
                 model = tf.keras.models.load_model(model_path)
                 
@@ -76,7 +87,7 @@ class SecurityEvaluator:
                 )
                 
             else:
-                st.error(f"不支持的模型类型: {model_type}")
+                st.error(f"不支持的模型类型: {model_info['model_type']}")
                 return None
             
             return estimator
@@ -88,7 +99,15 @@ class SecurityEvaluator:
     def prepare_dataset(self, dataset_info: Dict, sample_size: int = None) -> Tuple[np.ndarray, np.ndarray]:
         """准备数据集"""
         try:
-            if dataset_info['dataset_type'] == 'builtin':
+            # 修复键名不匹配问题：统一使用 data_type，兼容 type 字段
+            dataset_type = dataset_info.get('data_type', dataset_info.get('type', 'unknown'))
+            
+            # 判断是否为内置数据集：检查 type 字段或者没有 file_path
+            is_builtin = (dataset_type == 'builtin' or 
+                         dataset_info.get('type') == 'builtin' or 
+                         not dataset_info.get('file_path'))
+            
+            if is_builtin:
                 # 内置数据集
                 dataset_name = dataset_info['name']
                 
@@ -98,14 +117,24 @@ class SecurityEvaluator:
                 elif dataset_name == 'CIFAR-10':
                     (x_train, y_train), (x_test, y_test), _, _ = load_cifar10()
                     x_data, y_data = x_test, y_test
+                elif dataset_name == 'CIFAR-100':
+                    (x_train, y_train), (x_test, y_test), _, _ = load_cifar100()
+                    x_data, y_data = x_test, y_test
+                elif dataset_name == 'Fashion-MNIST':
+                    (x_train, y_train), (x_test, y_test), _, _ = load_fashion_mnist()
+                    x_data, y_data = x_test, y_test
                 else:
                     st.error(f"不支持的内置数据集: {dataset_name}")
                     return None, None
                     
             else:
                 # 用户上传的数据集
-                dataset_path = dataset_info['file_path']
-                data_format = dataset_info['data_format']
+                dataset_path = dataset_info.get('file_path')
+                if not dataset_path:
+                    st.error("用户数据集缺少文件路径")
+                    return None, None
+                    
+                data_format = dataset_info.get('data_format', 'numpy')  # 添加默认值
                 
                 if data_format == 'numpy':
                     data = np.load(dataset_path, allow_pickle=True)
@@ -142,6 +171,12 @@ class SecurityEvaluator:
             if x_data.max() > 1.0:
                 x_data = x_data / 255.0
             
+            # 添加维度格式转换：从 (N, H, W, C) 转换为 (N, C, H, W)
+            if len(x_data.shape) == 4 and x_data.shape[-1] in [1, 3]:  # 检测是否为图像数据
+                # 如果最后一个维度是通道数（1或3），则转换为 PyTorch 格式
+                x_data = np.transpose(x_data, (0, 3, 1, 2))  # (N, H, W, C) -> (N, C, H, W)
+                st.info(f"数据维度已转换为 PyTorch 格式: {x_data.shape}")
+            
             return x_data, y_data
             
         except Exception as e:
@@ -149,7 +184,7 @@ class SecurityEvaluator:
             return None, None
     
     def evaluate_model_robustness(self, model_info: Dict, dataset_info: Dict, 
-                                attack_config: Dict, evaluation_params: Dict) -> Dict:
+                            attack_config: Dict, evaluation_params: Dict) -> Dict:
         """评估模型鲁棒性"""
         try:
             # 准备数据
@@ -171,7 +206,19 @@ class SecurityEvaluator:
             # 获取原始预测
             st.info("🔍 获取原始模型预测...")
             original_predictions = estimator.predict(x_data)
-            original_accuracy = accuracy_score(y_data, np.argmax(original_predictions, axis=1))
+            
+            # 处理标签格式：确保 y_data 和预测结果格式一致
+            if len(y_data.shape) > 1 and y_data.shape[1] > 1:
+                # 如果 y_data 是 one-hot 编码，转换为类别索引
+                y_true = np.argmax(y_data, axis=1)
+            else:
+                # 如果 y_data 已经是类别索引，直接使用
+                y_true = y_data.flatten() if len(y_data.shape) > 1 else y_data
+            
+            # 确保预测结果是类别索引
+            y_pred_original = np.argmax(original_predictions, axis=1)
+            
+            original_accuracy = accuracy_score(y_true, y_pred_original)
             
             # 创建攻击实例
             st.info("⚔️ 创建攻击实例...")
@@ -212,7 +259,9 @@ class SecurityEvaluator:
             # 评估对抗样本
             st.info("📊 评估对抗样本效果...")
             adversarial_predictions = estimator.predict(adversarial_samples)
-            adversarial_accuracy = accuracy_score(y_data, np.argmax(adversarial_predictions, axis=1))
+            y_pred_adversarial = np.argmax(adversarial_predictions, axis=1)
+            
+            adversarial_accuracy = accuracy_score(y_true, y_pred_adversarial)
             
             # 计算攻击成功率
             attack_success_rate = 1.0 - adversarial_accuracy
@@ -246,10 +295,10 @@ class SecurityEvaluator:
                 },
                 "detailed_metrics": {
                     "original_classification_report": classification_report(
-                        y_data, np.argmax(original_predictions, axis=1), output_dict=True
+                        y_true, y_pred_original, output_dict=True
                     ),
                     "adversarial_classification_report": classification_report(
-                        y_data, np.argmax(adversarial_predictions, axis=1), output_dict=True
+                        y_true, y_pred_adversarial, output_dict=True
                     )
                 }
             }
@@ -694,12 +743,30 @@ L∞范数 (最大扰动): {result['results']['perturbation_stats']['linf_norm']
     def start_evaluation(self, evaluation_config: Dict) -> str:
         """启动安全评估"""
         try:
+            # 获取攻击配置列表，取第一个进行评估
+            attack_configs = evaluation_config.get('attack_configs', [])
+            if not attack_configs:
+                st.error("没有找到攻击配置")
+                return None
+            
+            # 目前只支持单个攻击配置的评估，取第一个
+            raw_attack_config = attack_configs[0]
+            
+            # 提取实际的攻击配置：如果有 'config' 字段，使用它；否则直接使用原配置
+            if 'config' in raw_attack_config:
+                attack_config = raw_attack_config['config']
+            else:
+                attack_config = raw_attack_config
+            
+            # 准备评估参数
+            evaluation_params = evaluation_config.get('parameters', {})
+            
             # 直接调用现有的评估方法
             result = self.evaluate_model_robustness(
                 evaluation_config['model'],
                 evaluation_config['dataset'], 
-                evaluation_config['attack_config'],
-                evaluation_config.get('evaluation_params', {})
+                attack_config,
+                evaluation_params
             )
             
             if 'error' in result:

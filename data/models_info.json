@@ -13,5 +13,18 @@
     "validation_message": "PyTorch完整模型验证成功",
     "last_modified": "2025-07-02T15:21:10.860183",
     "modified_by": "admin"
+  },
+  "admin_Resnet-50_20250702_164255": {
+    "model_name": "Resnet-50",
+    "description": "（1）用途：图像分类（如识别物体）、特征提取、迁移学习（用于目标检测、分割等）、对抗攻击研究。\n（2）架构：50 层卷积神经网络（CNN），含残差连接（缓解深层网络训练问题）。\n输入：224x224x3 RGB 图像。\n结构：4 个阶段，含多个残差块（1x1、3x3、1x1 卷积组合），最后接全连接层输出 1000 类。\n参数量：约 2500 万。\n（3）训练数据：ImageNet（1400 万张 RGB 图像，1000 类），预处理包括缩放、裁剪、数据增强。\n（4）特点：深而高效，广泛用于计算机视觉任务，PyTorch/TensorFlow 提供预训练模型。",
+    "model_type": "PyTorch",
+    "file_name": "admin_Resnet-50_20250702_164255.pth",
+    "file_path": "data/models/admin_Resnet-50_20250702_164255.pth",
+    "file_size": 102569093,
+    "file_hash": "09f89f8035b30ce04ab2276cc585105b",
+    "uploaded_by": "admin",
+    "upload_time": "2025-07-02T16:42:55.635316",
+    "validation_status": "valid",
+    "validation_message": "PyTorch完整模型验证成功"
   }
 }

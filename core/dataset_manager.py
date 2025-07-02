@@ -282,6 +282,12 @@ class DatasetManager:
         """获取内置数据集字典"""
         builtin_dict = {}
         for name, info in self.builtin_datasets.items():
+            # 计算内置数据集的估算文件大小
+            estimated_size = self._estimate_builtin_dataset_size(name, info)
+            
+            # 格式化数据形状信息
+            shape_str = self._format_shape_info(info)
+            
             dataset_data = {
                 'id': f"builtin_{name}",
                 'name': info['name'],
@@ -291,6 +297,8 @@ class DatasetManager:
                 'classes': info.get('classes', 0),
                 'samples': info.get('samples', 0),
                 'input_shape': info.get('input_shape', []),
+                'shape': shape_str,  # 添加格式化的形状信息
+                'file_size': estimated_size,  # 添加估算的文件大小
                 'class_names': info.get('class_names', []),
                 'is_builtin': True,
                 'uploaded_by': 'system',
@@ -298,6 +306,54 @@ class DatasetManager:
             }
             builtin_dict[name] = dataset_data
         return builtin_dict
+    
+    def _estimate_builtin_dataset_size(self, dataset_name: str, info: Dict) -> int:
+        """估算内置数据集的文件大小"""
+        try:
+            samples = info.get('samples', 0)
+            input_shape = info.get('input_shape', [])
+            
+            if not samples or not input_shape:
+                return 0
+            
+            # 计算单个样本的字节数（假设为float32，4字节）
+            bytes_per_sample = 1
+            for dim in input_shape:
+                bytes_per_sample *= dim
+            bytes_per_sample *= 4  # float32
+            
+            # 估算总大小（数据 + 标签）
+            estimated_size = samples * (bytes_per_sample + 4)  # 数据 + 标签(int32)
+            
+            # 根据数据集特点调整估算
+            if dataset_name == 'CIFAR-10':
+                return 170 * 1024 * 1024  # 约170MB
+            elif dataset_name == 'CIFAR-100':
+                return 169 * 1024 * 1024  # 约169MB
+            elif dataset_name == 'MNIST':
+                return 55 * 1024 * 1024   # 约55MB
+            elif dataset_name == 'Fashion-MNIST':
+                return 55 * 1024 * 1024   # 约55MB
+            
+            return estimated_size
+        except Exception:
+            return 0
+    
+    def _format_shape_info(self, info: Dict) -> str:
+        """格式化数据形状信息"""
+        try:
+            input_shape = info.get('input_shape', [])
+            samples = info.get('samples', 0)
+            
+            if input_shape and samples:
+                shape_str = f"({samples}, {', '.join(map(str, input_shape))})"
+                return shape_str
+            elif input_shape:
+                return f"({', '.join(map(str, input_shape))})"
+            else:
+                return "N/A"
+        except Exception:
+            return "N/A"
     
     def get_user_datasets(self, username: str) -> list:
         """获取用户的数据集列表"""
@@ -326,8 +382,9 @@ class DatasetManager:
         """获取所有数据集列表（包括内置和用户上传）"""
         all_datasets = []
         
-        # 添加内置数据集
-        all_datasets.extend(self.get_builtin_datasets())
+        # 添加内置数据集 - 修复：将字典的值添加到列表中
+        builtin_datasets = self.get_builtin_datasets()
+        all_datasets.extend(builtin_datasets.values())  # 使用 .values() 获取字典的值
         
         # 添加所有用户数据集
         datasets_info = self.load_datasets_info()
@@ -564,9 +621,26 @@ class DatasetManager:
         
         total_user_datasets = len(datasets_info)
         total_builtin_datasets = len(builtin_datasets)
-        total_size = sum(info.get('file_size', 0) for info in datasets_info.values())
         
-        # 按类型统计
+        # 计算用户数据集大小
+        user_datasets_size = sum(info.get('file_size', 0) for info in datasets_info.values())
+        
+        # 计算内置数据集大小
+        builtin_datasets_size = 0
+        try:
+            # 检查内置数据集目录下的文件大小
+            if self.builtin_datasets_dir.exists():
+                for item in self.builtin_datasets_dir.rglob('*'):
+                    if item.is_file():
+                        builtin_datasets_size += item.stat().st_size
+        except Exception as e:
+            # 如果无法计算内置数据集大小，记录错误但不影响其他统计
+            print(f"计算内置数据集大小时出错: {e}")
+        
+        # 总存储大小 = 用户数据集大小 + 内置数据集大小
+        total_size = user_datasets_size + builtin_datasets_size
+        
+        # 按类型统计（只统计用户数据集，因为内置数据集类型固定）
         type_stats = {}
         for info in datasets_info.values():
             dataset_type = info.get('dataset_type', 'Unknown')
@@ -574,6 +648,13 @@ class DatasetManager:
                 type_stats[dataset_type] = {'count': 0, 'size': 0}
             type_stats[dataset_type]['count'] += 1
             type_stats[dataset_type]['size'] += info.get('file_size', 0)
+        
+        # 为内置数据集添加类型统计
+        if total_builtin_datasets > 0:
+            if 'builtin' not in type_stats:
+                type_stats['builtin'] = {'count': 0, 'size': 0}
+            type_stats['builtin']['count'] = total_builtin_datasets
+            type_stats['builtin']['size'] = builtin_datasets_size
         
         # 按用户统计
         user_stats = {}
@@ -589,6 +670,8 @@ class DatasetManager:
             'total_builtin_datasets': total_builtin_datasets,
             'total_datasets': total_user_datasets + total_builtin_datasets,
             'total_size': total_size,
+            'user_datasets_size': user_datasets_size,
+            'builtin_datasets_size': builtin_datasets_size,
             'type_stats': type_stats,
             'user_stats': user_stats
         }

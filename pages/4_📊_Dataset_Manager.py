@@ -287,15 +287,62 @@ def builtin_datasets_interface():
                     st.session_state.selected_dataset = dataset_id
                     st.success(f"✅ 已选择数据集: {info.get('name')}")
                 
+                # 预览按钮 - 使用session state来控制预览显示
+                preview_key = f"show_preview_{dataset_id}"
                 if st.button("👁️ 预览", key=f"preview_{dataset_id}"):
+                    # 切换预览状态
+                    if preview_key not in st.session_state:
+                        st.session_state[preview_key] = False
+                    st.session_state[preview_key] = not st.session_state[preview_key]
+                    st.rerun()
+            
+            # 预览内容显示在数据集信息下方，占用全宽度
+            if st.session_state.get(f"show_preview_{dataset_id}", False):
+                st.markdown("---")
+                with st.container():
+                    st.markdown(f"### 👁️ {info.get('name')} 数据集预览")
+                    
                     with st.spinner("正在加载数据集预览..."):
                         success, preview_data, message = dataset_manager.preview_dataset(dataset_id, max_samples=5)
                     
                     if success:
                         st.success(f"✅ {message}")
-                        # 显示预览信息
-                        with st.expander(f"📊 {info.get('name')} 预览", expanded=True):
+                        
+                        # 创建两列布局来更好地展示预览信息
+                        preview_col1, preview_col2 = st.columns([1, 1])
+                        
+                        with preview_col1:
+                            st.markdown("#### 📊 数据集基本信息")
+                            if 'info' in preview_data:
+                                dataset_info = preview_data['info']
+                                st.write(f"**数据集名称:** {dataset_info.get('name', 'N/A')}")
+                                st.write(f"**数据类型:** {dataset_info.get('type', 'N/A')}")
+                                st.write(f"**类别数:** {dataset_info.get('classes', 'N/A')}")
+                                st.write(f"**样本总数:** {dataset_info.get('samples', 'N/A')}")
+                                st.write(f"**输入形状:** {shape_str}")
+                        
+                        with preview_col2:
+                            st.markdown("#### 🔍 预览详情")
+                            if 'train_samples' in preview_data:
+                                st.write(f"**训练集样本:** {preview_data.get('train_samples', 'N/A')}")
+                                st.write(f"**测试集样本:** {preview_data.get('test_samples', 'N/A')}")
+                            
+                            # 显示类别名称
+                            if 'class_names' in info:
+                                class_names = info['class_names']
+                                if len(class_names) <= 10:
+                                    st.write(f"**类别名称:** {', '.join(class_names)}")
+                                else:
+                                    st.write(f"**类别名称:** {', '.join(class_names[:8])}... (共{len(class_names)}个)")
+                        
+                        # 完整的预览数据（可折叠）
+                        with st.expander("📋 完整预览数据 (JSON格式)", expanded=False):
                             st.json(preview_data)
+                        
+                        # 添加关闭预览按钮
+                        if st.button("❌ 关闭预览", key=f"close_preview_{dataset_id}"):
+                            st.session_state[f"show_preview_{dataset_id}"] = False
+                            st.rerun()
                     else:
                         st.error(f"❌ {message}")
             
