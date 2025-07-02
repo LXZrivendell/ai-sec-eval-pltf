@@ -1,1 +1,44 @@
-{}
+{
+  "admin_imagnet-for-resnet18-5000pic_20250702_192004": {
+    "dataset_name": "imagnet-for-resnet18-5000pic",
+    "description": "5000张来自imagenet数据集验证集的图片经过预处理转换得到的.npz文件",
+    "dataset_type": "array",
+    "file_name": "admin_imagnet-for-resnet18-5000pic_20250702_192004.npz",
+    "file_path": "data/datasets/user/admin_imagnet-for-resnet18-5000pic_20250702_192004.npz",
+    "file_size": 825417590,
+    "file_hash": "8e4b122fcaceaab0e31c55c25f31bcc8",
+    "uploaded_by": "admin",
+    "upload_time": "2025-07-02T19:20:21.902476",
+    "validation_status": "valid",
+    "validation_message": "数据集验证成功",
+    "metadata": {
+      "files": [
+        "images",
+        "labels",
+        "metadata"
+      ],
+      "arrays_info": {
+        "images": {
+          "shape": [
+            5000,
+            3,
+            224,
+            224
+          ],
+          "dtype": "float32"
+        },
+        "labels": {
+          "shape": [
+            5000
+          ],
+          "dtype": "int32"
+        },
+        "metadata": {
+          "shape": [],
+          "dtype": "<U6362"
+        }
+      }
+    },
+    "is_builtin": false
+  }
+}

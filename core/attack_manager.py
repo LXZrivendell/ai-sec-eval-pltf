@@ -26,15 +26,16 @@ class AttackManager:
         
         # 支持的攻击算法配置
         self.attack_algorithms = {
+            # 在 attack_algorithms 字典中更新参数
             "FGSM": {
                 "name": "Fast Gradient Sign Method",
                 "class": FastGradientMethod,
                 "type": "evasion",
                 "description": "快速梯度符号方法，通过在梯度方向添加扰动生成对抗样本",
                 "params": {
-                    "eps": {"type": "float", "default": 0.3, "min": 0.0, "max": 1.0, "description": "扰动幅度"},
+                    "eps": {"type": "float", "default": 0.03, "min": 0.001, "max": 0.3, "description": "扰动幅度(推荐0.01-0.05)"},
                     "norm": {"type": "select", "options": ["inf", 1, 2], "default": "inf", "description": "范数类型"},
-                    "eps_step": {"type": "float", "default": 0.1, "min": 0.0, "max": 1.0, "description": "步长"},
+                    "eps_step": {"type": "float", "default": 0.01, "min": 0.001, "max": 0.1, "description": "步长"},
                     "targeted": {"type": "bool", "default": False, "description": "是否为目标攻击"}
                 }
             },
@@ -44,11 +45,22 @@ class AttackManager:
                 "type": "evasion",
                 "description": "投影梯度下降攻击，FGSM的迭代版本",
                 "params": {
-                    "eps": {"type": "float", "default": 0.3, "min": 0.0, "max": 1.0, "description": "扰动幅度"},
-                    "eps_step": {"type": "float", "default": 0.01, "min": 0.0, "max": 1.0, "description": "每步扰动大小"},
-                    "max_iter": {"type": "int", "default": 100, "min": 1, "max": 1000, "description": "最大迭代次数"},
+                    "eps": {"type": "float", "default": 0.03, "min": 0.001, "max": 0.3, "description": "扰动幅度(推荐0.01-0.05)"},
+                    "eps_step": {"type": "float", "default": 0.007, "min": 0.001, "max": 0.05, "description": "每步扰动大小"},
+                    "max_iter": {"type": "int", "default": 20, "min": 5, "max": 100, "description": "最大迭代次数(推荐10-40)"},
                     "targeted": {"type": "bool", "default": False, "description": "是否为目标攻击"},
-                    "num_random_init": {"type": "int", "default": 0, "min": 0, "max": 10, "description": "随机初始化次数"}
+                    "num_random_init": {"type": "int", "default": 1, "min": 0, "max": 5, "description": "随机初始化次数"}
+                }
+            },
+             "DeepFool": {
+                "name": "DeepFool",
+                "class": DeepFool,
+                "type": "evasion",
+                "description": "DeepFool攻击，寻找最小扰动使样本跨越决策边界",
+                "params": {
+                    "max_iter": {"type": "int", "default": 100, "min": 1, "max": 1000, "description": "最大迭代次数"},
+                    "epsilon": {"type": "float", "default": 1e-6, "min": 1e-10, "max": 1e-2, "description": "数值稳定性参数"},
+                    "nb_grads": {"type": "int", "default": 10, "min": 1, "max": 100, "description": "梯度计算批次大小"}
                 }
             },
             "C&W": {
@@ -62,17 +74,6 @@ class AttackManager:
                     "learning_rate": {"type": "float", "default": 0.01, "min": 0.001, "max": 1.0, "description": "学习率"},
                     "max_iter": {"type": "int", "default": 1000, "min": 1, "max": 10000, "description": "最大迭代次数"},
                     "initial_const": {"type": "float", "default": 0.01, "min": 0.001, "max": 100.0, "description": "初始常数"}
-                }
-            },
-            "DeepFool": {
-                "name": "DeepFool",
-                "class": DeepFool,
-                "type": "evasion",
-                "description": "DeepFool攻击，寻找最小扰动使样本跨越决策边界",
-                "params": {
-                    "max_iter": {"type": "int", "default": 100, "min": 1, "max": 1000, "description": "最大迭代次数"},
-                    "epsilon": {"type": "float", "default": 1e-6, "min": 1e-10, "max": 1e-2, "description": "数值稳定性参数"},
-                    "nb_grads": {"type": "int", "default": 10, "min": 1, "max": 100, "description": "梯度计算批次大小"}
                 }
             },
             "Boundary": {
@@ -210,8 +211,13 @@ class AttackManager:
             # 处理特殊参数
             processed_params = self._process_attack_params(algorithm, params)
             
-            # 创建攻击实例
-            attack_instance = attack_class(estimator=estimator, **processed_params)
+            # 根据不同的攻击算法使用不同的参数名
+            if algorithm == "DeepFool":
+                # DeepFool 使用 classifier 参数
+                attack_instance = attack_class(classifier=estimator, **processed_params)
+            else:
+                # 其他攻击算法使用 estimator 参数
+                attack_instance = attack_class(estimator=estimator, **processed_params)
             
             return attack_instance
         except Exception as e:

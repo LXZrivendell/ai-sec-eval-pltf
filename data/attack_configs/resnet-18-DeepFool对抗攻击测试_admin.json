@@ -1,0 +1,22 @@
+{
+  "name": "resnet-18-DeepFool对抗攻击测试",
+  "config": {
+    "algorithm": "DeepFool",
+    "algorithm_name": "DeepFool",
+    "attack_type": "evasion",
+    "description": "",
+    "params": {
+      "max_iter": 1000,
+      "epsilon": 1e-06,
+      "nb_grads": 32
+    },
+    "advanced_options": {
+      "batch_size": 32,
+      "verbose": true,
+      "save_adversarial": true
+    }
+  },
+  "user_id": "admin",
+  "created_at": "2025-07-02T19:33:01.641740",
+  "updated_at": "2025-07-02T19:33:01.641750"
+}
