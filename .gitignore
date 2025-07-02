@@ -107,3 +107,8 @@ Thumbs.db
 # HuggingFace cache
 .cache/huggingface/
 transformers_cache/
+
+# others
+ILSVRC2012_img_val.tar
+imagenet_val_5k.npz
+imagenet_val_extracted/
