@@ -62,14 +62,6 @@ st.markdown("""
     border: none;
     box-shadow: none;
 }
-.upload-container {
-    background-color: transparent;
-    padding: 1.5rem;
-    border-radius: 10px;
-    border: 2px dashed rgba(0, 123, 255, 0.3);
-    text-align: center;
-    margin: 1rem 0;
-}
 .stats-card {
     background-color: transparent;
     padding: 0.8rem;
@@ -146,16 +138,12 @@ def upload_dataset_interface():
     
     # 上传表单
     with st.form("upload_dataset_form"):
-        st.markdown('<div class="upload-container">', unsafe_allow_html=True)
-        
         # 文件上传
         uploaded_file = st.file_uploader(
             "选择数据集文件",
             type=['csv', 'json', 'parquet', 'npy', 'npz', 'pkl', 'pickle', 'jpg', 'jpeg', 'png', 'bmp', 'txt'],
             help="支持多种数据格式，系统会自动检测数据类型"
         )
-        
-        st.markdown('</div>', unsafe_allow_html=True)
         
         # 数据集信息
         col1, col2 = st.columns(2)
@@ -197,43 +185,47 @@ def upload_dataset_interface():
         # 上传按钮
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.form_submit_button("🚀 上传数据集", use_container_width=True):
-                if not uploaded_file:
-                    st.error("❌ 请选择要上传的数据集文件")
-                elif not dataset_name:
-                    st.error("❌ 请输入数据集名称")
-                elif dataset_type == "自动检测":
-                    st.error("❌ 无法识别数据集类型，请检查文件格式")
-                else:
-                    # 执行上传
-                    with st.spinner("正在上传和验证数据集..."):
-                        # 转换类型名称
-                        type_mapping = {
-                            "表格数据": "tabular",
-                            "数组数据": "array",
-                            "图像数据": "image",
-                            "文本数据": "text"
-                        }
-                        actual_type = type_mapping.get(dataset_type, "auto")
-                        
-                        success, message, dataset_id = dataset_manager.save_uploaded_dataset(
-                            uploaded_file, dataset_name, description, actual_type, username
-                        )
-                    
-                    if success:
-                        st.success(f"✅ {message}")
-                        st.balloons()
-                        
-                        # 更新会话状态
-                        st.session_state.selected_dataset = dataset_id
-                        
-                        # 显示下一步提示
-                        st.info("🎯 数据集上传成功！您现在可以配置攻击参数进行安全评估。")
-                        
-                        if st.button("⚔️ 前往攻击配置"):
-                            st.switch_page("pages/5_⚔️_Attack_Config.py")
-                    else:
-                        st.error(f"❌ {message}")
+            upload_submitted = st.form_submit_button("🚀 上传数据集", use_container_width=True)
+    
+    # 处理表单提交（移到表单外部）
+    if upload_submitted:
+        if not uploaded_file:
+            st.error("❌ 请选择要上传的数据集文件")
+        elif not dataset_name:
+            st.error("❌ 请输入数据集名称")
+        elif dataset_type == "自动检测":
+            st.error("❌ 无法识别数据集类型，请检查文件格式")
+        else:
+            # 执行上传
+            with st.spinner("正在上传和验证数据集..."):
+                # 转换类型名称
+                type_mapping = {
+                    "表格数据": "tabular",
+                    "数组数据": "array",
+                    "图像数据": "image",
+                    "文本数据": "text"
+                }
+                actual_type = type_mapping.get(dataset_type, "auto")
+                
+                success, message, dataset_id = dataset_manager.save_uploaded_dataset(
+                    uploaded_file, dataset_name, description, actual_type, username
+                )
+            
+            if success:
+                st.success(f"✅ {message}")
+                st.balloons()
+                
+                # 更新会话状态
+                st.session_state.selected_dataset = dataset_id
+                
+                # 显示下一步提示
+                st.info("🎯 数据集上传成功！您现在可以配置攻击参数进行安全评估。")
+                
+                # 前往攻击配置按钮（移到表单外部）
+                if st.button("⚔️ 前往攻击配置"):
+                    st.switch_page("pages/5_⚔️_Attack_Config.py")
+            else:
+                st.error(f"❌ {message}")
 
 def builtin_datasets_interface():
     """内置数据集界面"""
@@ -541,9 +533,34 @@ def dataset_details_interface():
         metadata = dataset_info['metadata']
         
         if isinstance(metadata, dict):
-            # 以表格形式显示元数据
-            metadata_df = pd.DataFrame(list(metadata.items()), columns=['属性', '值'])
-            st.dataframe(metadata_df, use_container_width=True)
+            # 预处理metadata值，确保所有值都是字符串类型
+            processed_metadata = []
+            for key, value in metadata.items():
+                # 将所有值转换为字符串，特别处理列表和复杂对象
+                if isinstance(value, (list, tuple)):
+                    # 如果是列表或元组，转换为逗号分隔的字符串
+                    if len(value) <= 10:
+                        str_value = ', '.join(map(str, value))
+                    else:
+                        str_value = ', '.join(map(str, value[:10])) + f'... (共{len(value)}项)'
+                elif isinstance(value, dict):
+                    # 如果是字典，转换为JSON字符串
+                    str_value = str(value)
+                elif value is None:
+                    str_value = 'N/A'
+                else:
+                    str_value = str(value)
+                
+                processed_metadata.append([str(key), str_value])
+            
+            # 创建DataFrame
+            try:
+                metadata_df = pd.DataFrame(processed_metadata, columns=['属性', '值'])
+                st.dataframe(metadata_df, use_container_width=True)
+            except Exception as e:
+                # 如果仍然出错，回退到JSON显示
+                st.warning("⚠️ 无法以表格形式显示元数据，改用JSON格式")
+                st.json(metadata)
         else:
             st.json(metadata)
     

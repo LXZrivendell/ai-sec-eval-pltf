@@ -194,7 +194,7 @@ def upload_model_interface():
         st.markdown("---")
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("📊 前往数据集管理", use_container_width=True):
+            if st.button("📊 前往数据集管理", use_container_width=True, key="goto_dataset_from_upload"):
                 st.session_state.upload_success = False  # 重置标志
                 st.switch_page("pages/4_📊_Dataset_Manager.py")
 
@@ -405,7 +405,7 @@ def model_details_interface():
             st.success(f"✅ 已选择模型: {model_info.get('model_name')}")
     
     with col2:
-        if st.button("📊 前往数据集管理", use_container_width=True):
+        if st.button("📊 前往数据集管理", use_container_width=True, key="goto_dataset_from_details"):
             st.switch_page("pages/4_📊_Dataset_Manager.py")
     
     with col3:

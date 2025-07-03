@@ -17,7 +17,7 @@ from .model_loader import ModelLoader
 from .dataset_manager import DatasetManager
 from .attack_manager import AttackManager
 from .security_evaluator import SecurityEvaluator
-from .report_generator import ReportGenerator
+from .reporting import ReportGenerator
 
 # 定义模块版本
 __version__ = "1.0.0"

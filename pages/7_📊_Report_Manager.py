@@ -4,7 +4,9 @@ from datetime import datetime
 import os
 from core.auth_manager import AuthManager
 from core.security_evaluator import SecurityEvaluator
-from core.report_generator import ReportGenerator
+# 修改第7行的导入语句
+from core.reporting import ReportGenerator
+# 替换原来的：from core.report_generator import ReportGenerator
 
 # 页面配置
 st.set_page_config(
@@ -125,8 +127,19 @@ if function_choice == "生成报告":
             with col2:
                 if st.button("📊 生成报告", type="primary", use_container_width=True):
                     with st.spinner("正在生成报告..."):
-                        # 准备报告数据
-                        report_data = selected_evaluation.copy()
+                        # 准备报告数据 - 重构数据结构以匹配报告生成器期望
+                        report_data = {
+                            'evaluation_id': selected_evaluation.get('id'),
+                            'timestamp': selected_evaluation.get('created_at'),
+                            'model_info': selected_evaluation.get('config', {}).get('model', {}),
+                            'dataset_info': selected_evaluation.get('config', {}).get('dataset', {}),
+                            'attack_config': selected_evaluation.get('config', {}).get('attack_configs', [{}])[0] if selected_evaluation.get('config', {}).get('attack_configs') else {},
+                            'results': selected_evaluation.get('results', {}),
+                            'evaluation_params': {},  # 如果需要可以从其他地方获取
+                            'attack_stats': {}  # 如果需要可以从其他地方获取
+                        }
+                        
+                        # 添加报告配置
                         report_data['config'] = {
                             'include_charts': include_charts,
                             'include_recommendations': include_recommendations,
@@ -136,7 +149,7 @@ if function_choice == "生成报告":
                         # 生成报告
                         report_path = report_generator.generate_report(
                             report_data, 
-                            format_type=report_format.lower()
+                            report_format=report_format.lower()
                         )
                         
                         if report_path:

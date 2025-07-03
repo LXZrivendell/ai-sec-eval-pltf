@@ -118,8 +118,8 @@ class Config:
     }
     
     # 文件上传限制
-    MAX_FILE_SIZE_MB = 500
-    MAX_BATCH_SIZE = 1000
+    MAX_FILE_SIZE_MB = 50000
+    MAX_BATCH_SIZE = 100000
     
     # 日志配置
     LOG_LEVEL = 'INFO'

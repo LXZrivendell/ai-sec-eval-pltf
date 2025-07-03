@@ -14,7 +14,9 @@ from core.model_loader import ModelLoader
 from core.dataset_manager import DatasetManager
 from core.attack_manager import AttackManager
 from core.security_evaluator import SecurityEvaluator
-from core.report_generator import ReportGenerator
+# 修改第17行的导入语句  
+from core.reporting import ReportGenerator
+# 替换原来的：from core.report_generator import ReportGenerator
 
 # 页面配置
 st.set_page_config(
@@ -270,10 +272,10 @@ with col3:
     st.subheader("📋 平台信息")
     st.markdown("""
     **版本**: v1.0.0  
-    **更新时间**: 2024-01-01  
+    **更新时间**: 2025-07-02  
     **支持格式**:  
-    - 模型: PyTorch, TensorFlow, ONNX, Scikit-learn  
-    - 数据: CSV, JSON, NPY, Images  
+    - 模型: PyTorch, TensorFlow, ONNX, Scikit-learn等  
+    - 数据: CSV, JSON, NPY, Images等
     - 攻击: FGSM, PGD, C&W, DeepFool等  
     """)
     
