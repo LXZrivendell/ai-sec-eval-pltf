@@ -34,13 +34,23 @@ class ARTEstimatorManager:
         
         # 安全加载模型
         try:
-            model = torch.load(model_path, map_location='cpu', weights_only=True)
+            model_data = torch.load(model_path, map_location='cpu', weights_only=True)
         except Exception:
-            model = torch.load(model_path, map_location='cpu', weights_only=False)
+            model_data = torch.load(model_path, map_location='cpu', weights_only=False)
         
-        # 检查模型类型
-        if isinstance(model, dict):
-            raise ValueError("检测到权重文件，但缺少模型架构。请上传完整的模型文件。")
+        # 检查模型类型并提取模型对象
+        if isinstance(model_data, dict):
+            if 'model' in model_data:
+                # 字典中包含完整模型对象
+                model = model_data['model']
+            elif 'model_state_dict' in model_data:
+                # 只有权重，需要重建模型架构
+                raise ValueError("检测到权重文件，但缺少模型架构。请上传完整的模型文件。")
+            else:
+                raise ValueError("无法识别的模型文件格式。")
+        else:
+            # 直接是模型对象
+            model = model_data
         
         model.eval()
         

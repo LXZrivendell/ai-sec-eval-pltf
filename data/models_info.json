@@ -25,17 +25,17 @@
     "validation_status": "valid",
     "validation_message": "PyTorch完整模型验证成功"
   },
-  "admin_resnet18-cifar100_20250703_154845": {
-    "model_name": "resnet18-cifar100",
+  "admin_Resnet18-cifar100-final_20250703_233755": {
+    "model_name": "Resnet18-cifar100-final",
     "description": "",
     "model_type": "PyTorch",
-    "file_name": "admin_resnet18-cifar100_20250703_154845.pth",
-    "file_path": "data/models/admin_resnet18-cifar100_20250703_154845.pth",
-    "file_size": 44972235,
-    "file_hash": "ee9dfd85a1aa0a04d2b987cc79fa1a93",
+    "file_name": "admin_Resnet18-cifar100-final_20250703_233755.pth",
+    "file_path": "data/models/admin_Resnet18-cifar100-final_20250703_233755.pth",
+    "file_size": 44991435,
+    "file_hash": "a9e23179009e742d67e53263025eb2f8",
     "uploaded_by": "admin",
-    "upload_time": "2025-07-03T15:48:45.559602",
+    "upload_time": "2025-07-03T23:37:55.947810",
     "validation_status": "valid",
-    "validation_message": "PyTorch完整模型验证成功"
+    "validation_message": "PyTorch状态字典验证成功"
   }
 }

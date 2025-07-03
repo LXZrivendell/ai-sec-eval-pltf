@@ -1,0 +1,22 @@
+{
+  "name": "2",
+  "config": {
+    "algorithm": "DeepFool",
+    "algorithm_name": "DeepFool",
+    "attack_type": "evasion",
+    "description": "",
+    "params": {
+      "max_iter": 100,
+      "epsilon": 1e-06,
+      "nb_grads": 10
+    },
+    "advanced_options": {
+      "batch_size": 32,
+      "verbose": true,
+      "save_adversarial": true
+    }
+  },
+  "user_id": "admin",
+  "created_at": "2025-07-04T00:43:24.933294",
+  "updated_at": "2025-07-04T00:43:24.934990"
+}
