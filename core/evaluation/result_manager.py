@@ -144,7 +144,8 @@ class ResultManager:
                         result = json.load(f)
                         
                         # 如果指定了用户ID，只返回该用户的结果
-                        if user_id is None or result.get('model_info', {}).get('user_id') == user_id:
+                        # 修复：使用 uploader 字段而不是 uploaded_by
+                        if user_id is None or result.get('model_info', {}).get('uploader') == user_id:
                             results.append(result)
         
         except Exception as e:

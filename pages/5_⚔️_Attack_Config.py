@@ -55,8 +55,8 @@ if function_choice == "创建攻击配置":
         
         attack_type = st.selectbox(
             "攻击类型",
-            ["evasion", "poisoning"],
-            help="选择攻击类型"
+            ["evasion", "poisoning", "extraction", "inference"],
+            help="选择攻击类型：\n- evasion: 逃避攻击\n- poisoning: 投毒攻击\n- extraction: 提取攻击\n- inference: 推理攻击"
         )
     
     with col2:
@@ -213,7 +213,7 @@ elif function_choice == "我的配置":
         with col2:
             attack_type_filter = st.selectbox(
                 "攻击类型",
-                ["全部", "evasion", "poisoning"]
+                ["全部", "evasion", "poisoning", "extraction", "inference"]
             )
         
         with col3:

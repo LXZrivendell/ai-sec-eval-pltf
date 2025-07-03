@@ -11,6 +11,21 @@ from art.attacks.evasion import (
 from art.attacks.poisoning import (
     PoisoningAttackBackdoor, PoisoningAttackCleanLabelBackdoor
 )
+# 添加extraction攻击导入
+from art.attacks.extraction import (
+    CopycatCNN, KnockoffNets, FunctionallyEquivalentExtraction
+)
+# 添加inference攻击导入
+from art.attacks.inference.membership_inference import (
+    MembershipInferenceBlackBox, MembershipInferenceBlackBoxRuleBased,
+    LabelOnlyDecisionBoundary
+)
+from art.attacks.inference.attribute_inference import (
+    AttributeInferenceBaseline, AttributeInferenceBlackBox
+)
+from art.attacks.inference.model_inversion import (
+    MIFace
+)
 from art.estimators.classification import (
     PyTorchClassifier, TensorFlowV2Classifier, KerasClassifier
 )
@@ -122,6 +137,124 @@ class AttackManager:
                     "eps": {"type": "float", "default": 0.3, "min": 0.001, "max": 1.0, "description": "扰动幅度"},
                     "version": {"type": "select", "options": ["standard", "plus", "rand"], "default": "standard", "description": "攻击版本"}
                 }
+            },
+            # 添加Extraction攻击
+            "CopycatCNN": {
+                "name": "Copycat CNN",
+                "class": CopycatCNN,
+                "type": "extraction",
+                "description": "Copycat CNN攻击，通过查询目标模型来训练替代模型",
+                "params": {
+                    "batch_size_fit": {"type": "int", "default": 1, "min": 1, "max": 128, "description": "训练批次大小"},
+                    "batch_size_query": {"type": "int", "default": 1, "min": 1, "max": 128, "description": "查询批次大小"},
+                    "nb_epochs": {"type": "int", "default": 10, "min": 1, "max": 100, "description": "训练轮数"},
+                    "nb_stolen": {"type": "int", "default": 1000, "min": 100, "max": 100000, "description": "查询次数"},
+                    "use_probability": {"type": "bool", "default": False, "description": "是否使用概率输出"}
+                }
+            },
+            "KnockoffNets": {
+                "name": "Knockoff Nets",
+                "class": KnockoffNets,
+                "type": "extraction",
+                "description": "Knockoff Nets攻击，通过自适应采样策略窃取模型",
+                "params": {
+                    "batch_size_fit": {"type": "int", "default": 1, "min": 1, "max": 128, "description": "训练批次大小"},
+                    "batch_size_query": {"type": "int", "default": 1, "min": 1, "max": 128, "description": "查询批次大小"},
+                    "nb_epochs": {"type": "int", "default": 10, "min": 1, "max": 100, "description": "训练轮数"},
+                    "nb_stolen": {"type": "int", "default": 1000, "min": 100, "max": 100000, "description": "查询次数"},
+                    "sampling_strategy": {"type": "select", "options": ["random", "adaptive"], "default": "random", "description": "采样策略"},
+                    "reward": {"type": "select", "options": ["cert", "div", "loss", "all"], "default": "all", "description": "奖励类型"},
+                    "use_probability": {"type": "bool", "default": False, "description": "是否使用概率输出"}
+                }
+            },
+            "FunctionallyEquivalent": {
+                "name": "Functionally Equivalent Extraction",
+                "class": FunctionallyEquivalentExtraction,
+                "type": "extraction",
+                "description": "功能等价提取攻击，针对两层密集神经网络的精确提取",
+                "params": {
+                    "num_neurons": {"type": "int", "default": 100, "min": 10, "max": 1000, "description": "第一层神经元数量"}
+                }
+            },
+            
+            # 添加Inference攻击
+            "MembershipInferenceBlackBox": {
+                "name": "Membership Inference Black-Box",
+                "class": MembershipInferenceBlackBox,
+                "type": "inference",
+                "description": "成员推理黑盒攻击，推断样本是否在训练集中",
+                "params": {
+                    "input_type": {"type": "select", "options": ["prediction", "loss"], "default": "prediction", "description": "输入类型"},
+                    "attack_model_type": {"type": "select", "options": ["nn", "rf", "gb", "lr", "dt", "knn", "svm"], "default": "nn", "description": "攻击模型类型"},
+                    "nn_model_epochs": {"type": "int", "default": 100, "min": 10, "max": 1000, "description": "神经网络训练轮数"},
+                    "nn_model_batch_size": {"type": "int", "default": 100, "min": 1, "max": 512, "description": "神经网络批次大小"},
+                    "nn_model_learning_rate": {"type": "float", "default": 0.0001, "min": 0.00001, "max": 0.1, "description": "神经网络学习率"}
+                }
+            },
+            "MembershipInferenceRuleBased": {
+                "name": "Membership Inference Rule-Based",
+                "class": MembershipInferenceBlackBoxRuleBased,
+                "type": "inference",
+                "description": "基于规则的成员推理攻击，简单有效的推理方法",
+                "params": {}
+            },
+            "AttributeInferenceBlackBox": {
+                "name": "Attribute Inference Black-Box",
+                "class": AttributeInferenceBlackBox,
+                "type": "inference",
+                "description": "属性推理黑盒攻击，推断样本的敏感属性",
+                "params": {
+                    "attack_model_type": {"type": "select", "options": ["nn", "rf", "gb", "lr", "dt", "knn", "svm"], "default": "nn", "description": "攻击模型类型"},
+                    "attack_feature": {"type": "int", "default": 0, "min": 0, "max": 100, "description": "攻击特征索引"},
+                    "is_continuous": {"type": "bool", "default": False, "description": "是否为连续特征"},
+                    "nn_model_epochs": {"type": "int", "default": 100, "min": 10, "max": 1000, "description": "神经网络训练轮数"},
+                    "nn_model_batch_size": {"type": "int", "default": 100, "min": 1, "max": 512, "description": "神经网络批次大小"}
+                }
+            },
+            "AttributeInferenceBaseline": {
+                "name": "Attribute Inference Baseline",
+                "class": AttributeInferenceBaseline,
+                "type": "inference",
+                "description": "属性推理基线攻击，不使用目标模型的基线方法",
+                "params": {
+                    "attack_model_type": {"type": "select", "options": ["nn", "rf", "gb", "lr", "dt", "knn", "svm"], "default": "nn", "description": "攻击模型类型"},
+                    "attack_feature": {"type": "int", "default": 0, "min": 0, "max": 100, "description": "攻击特征索引"},
+                    "is_continuous": {"type": "bool", "default": False, "description": "是否为连续特征"},
+                    "nn_model_epochs": {"type": "int", "default": 100, "min": 10, "max": 1000, "description": "神经网络训练轮数"}
+                }
+            },
+            "ModelInversionMIFace": {
+                "name": "Model Inversion MIFace",
+                "class": MIFace,
+                "type": "inference",
+                "description": "模型逆向MIFace攻击，从模型预测重构输入数据",
+                "params": {
+                    "max_iter": {"type": "int", "default": 10000, "min": 1000, "max": 50000, "description": "最大迭代次数"},
+                    "window_length": {"type": "int", "default": 10, "min": 1, "max": 50, "description": "窗口长度"},
+                    "threshold": {"type": "float", "default": 0.99, "min": 0.5, "max": 1.0, "description": "阈值"}
+                }
+            },
+            # 删除这些重复的定义（第489行到文件末尾）
+            # 在attack_algorithms字典中添加poisoning攻击
+            "PoisoningBackdoor": {
+                "name": "Poisoning Attack Backdoor",
+                "class": PoisoningAttackBackdoor,
+                "type": "poisoning",
+                "description": "后门投毒攻击，在训练数据中植入后门触发器",
+                "params": {
+                    "perturbation": {"type": "float", "default": 1.0, "min": 0.1, "max": 10.0, "description": "扰动强度"},
+                    "perc_poison": {"type": "float", "default": 0.1, "min": 0.01, "max": 0.5, "description": "投毒样本比例"}
+                }
+            },
+            "PoisoningCleanLabel": {
+                "name": "Poisoning Attack Clean Label Backdoor",
+                "class": PoisoningAttackCleanLabelBackdoor,
+                "type": "poisoning",
+                "description": "干净标签后门投毒攻击，保持标签不变的投毒攻击",
+                "params": {
+                    "backdoor": {"type": "object", "default": None, "description": "后门模式配置"},
+                    "proxy_classifier": {"type": "object", "default": None, "description": "代理分类器"}
+                }
             }
         }
     
@@ -207,12 +340,19 @@ class AttackManager:
                 raise ValueError(f"不支持的攻击算法: {algorithm}")
             
             attack_class = self.attack_algorithms[algorithm]["class"]
+            attack_type = self.attack_algorithms[algorithm]["type"]
             
             # 处理特殊参数
             processed_params = self._process_attack_params(algorithm, params)
             
-            # 根据不同的攻击算法使用不同的参数名
-            if algorithm == "DeepFool":
+            # 根据不同的攻击类型和算法使用不同的参数名
+            if attack_type == "extraction":
+                # Extraction攻击使用classifier参数
+                attack_instance = attack_class(classifier=estimator, **processed_params)
+            elif attack_type == "inference":
+                # Inference攻击使用estimator参数
+                attack_instance = attack_class(estimator=estimator, **processed_params)
+            elif algorithm == "DeepFool":
                 # DeepFool 使用 classifier 参数
                 attack_instance = attack_class(classifier=estimator, **processed_params)
             else:
