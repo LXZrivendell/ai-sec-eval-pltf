@@ -112,4 +112,3 @@ transformers_cache/
 ILSVRC2012_img_val.tar
 imagenet_val_5k.npz
 imagenet_val_extracted/
-data/cifar-100-python/
