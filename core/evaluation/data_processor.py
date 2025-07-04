@@ -36,8 +36,8 @@ class DataProcessor:
             # 应用采样
             x_data, y_data = self._apply_sampling(x_data, y_data, sample_size)
             
-            # 数据预处理
-            x_data = self._preprocess_data(x_data)
+            # 数据预处理 - 传递数据集类型信息
+            x_data = self._preprocess_data(x_data, is_builtin=is_builtin)
             
             # 验证数据
             self._validate_data(x_data, y_data)
@@ -160,11 +160,19 @@ class DataProcessor:
         st.info(f"从 {len(x_data)} 个样本中采样了 {sample_size} 个")
         return x_sampled, y_sampled
     
-    def _preprocess_data(self, x_data: np.ndarray) -> np.ndarray:
+    def _preprocess_data(self, x_data: np.ndarray, is_builtin: bool = True) -> np.ndarray:
         """数据预处理"""
-        # 数据类型转换
+        # 数据类型转换（所有数据都需要）
         if x_data.dtype != np.float32:
             x_data = x_data.astype(np.float32)
+        
+        # 对于用户上传的数据集，假设已经预处理过，跳过归一化和维度转换
+        if not is_builtin:
+            st.info("用户上传的数据集：假设已预处理，跳过归一化和维度转换")
+            return x_data
+        
+        # 仅对内置数据集进行预处理
+        st.info("内置数据集：应用标准预处理")
         
         # 归一化
         if x_data.max() > 1.0:

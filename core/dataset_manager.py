@@ -158,14 +158,14 @@ class DatasetManager:
             
             elif dataset_type == 'array':
                 if file_path.suffix.lower() in ['.npy']:
-                    data = np.load(file_path)
+                    data = np.load(file_path, allow_pickle=True)
                     metadata = {
                         'shape': data.shape,
                         'dtype': str(data.dtype),
                         'size': data.size
                     }
                 elif file_path.suffix.lower() == '.npz':
-                    data = np.load(file_path)
+                    data = np.load(file_path, allow_pickle=True)
                     metadata = {
                         'files': list(data.files),
                         'arrays_info': {name: {'shape': data[name].shape, 'dtype': str(data[name].dtype)} 
@@ -538,10 +538,20 @@ class DatasetManager:
                     return False, None, f"不支持的表格数据格式: {file_path.suffix}"
             
             elif dataset_type == 'array':
-                if file_path.suffix.lower() == '.npy':
-                    data = np.load(file_path)
+                if file_path.suffix.lower() in ['.npy']:
+                    data = np.load(file_path, allow_pickle=True)
+                    metadata = {
+                        'shape': data.shape,
+                        'dtype': str(data.dtype),
+                        'size': data.size
+                    }
                 elif file_path.suffix.lower() == '.npz':
-                    data = np.load(file_path)
+                    data = np.load(file_path, allow_pickle=True)
+                    metadata = {
+                        'files': list(data.files),
+                        'arrays_info': {name: {'shape': data[name].shape, 'dtype': str(data[name].dtype)} 
+                                      for name in data.files}
+                    }
                 elif file_path.suffix.lower() in ['.pkl', '.pickle']:
                     with open(file_path, 'rb') as f:
                         data = pickle.load(f)

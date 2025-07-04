@@ -161,21 +161,81 @@ class ReportGenerator:
                 
                 <div class="section">
                     <h2>⚙️ 技术细节</h2>
-                    <div class="metric-grid">
-                        <div class="metric"><strong>攻击参数:</strong> {str(result['attack_config'].get('params', {}))}</div>
-                        <div class="metric"><strong>批次大小:</strong> {result['attack_config'].get('advanced_options', {}).get('batch_size', 'N/A')}</div>
-                        <div class="metric"><strong>评估参数:</strong> {str(result['evaluation_params'])}</div>
-                    </div>
+                    <table>
+                        <tr>
+                            <th>参数类型</th>
+                            <th>参数值</th>
+                            <th>说明</th>
+                        </tr>
+                        <tr>
+                            <td>攻击算法</td>
+                            <td>{result['attack_config']['algorithm']}</td>
+                            <td>使用的对抗攻击算法</td>
+                        </tr>
+                        <tr>
+                            <td>扰动强度 (ε)</td>
+                            <td>{result['attack_config']['params'].get('eps', 'N/A')}</td>
+                            <td>最大允许扰动幅度</td>
+                        </tr>
+                        <tr>
+                            <td>迭代次数</td>
+                            <td>{self._get_iteration_count(result['attack_config'])}</td>
+                            <td>攻击算法迭代次数</td>
+                        </tr>
+                        <tr>
+                            <td>步长</td>
+                            <td>{result['attack_config']['params'].get('eps_step', result['attack_config']['params'].get('alpha', 'N/A'))}</td>
+                            <td>每次迭代的步长</td>
+                        </tr>
+                        <tr>
+                            <td>批次大小</td>
+                            <td>{result['evaluation_params'].get('batch_size', 32)}</td>
+                            <td>评估时使用的批次大小</td>
+                        </tr>
+                        <tr>
+                            <td>目标攻击</td>
+                            <td>{'是' if result['attack_config'].get('targeted', False) else '否'}</td>
+                            <td>是否为目标攻击</td>
+                        </tr>
+                    </table>
                 </div>
                 
                 <div class="section">
                     <h2>📈 性能统计</h2>
-                    <div class="metric-grid">
-                        <div class="metric"><strong>总批次数:</strong> {result.get('attack_stats', {}).get('total_batches', 'N/A')}</div>
-                        <div class="metric"><strong>成功批次:</strong> {result.get('attack_stats', {}).get('successful_batches', 'N/A')}</div>
-                        <div class="metric"><strong>失败批次:</strong> {result.get('attack_stats', {}).get('failed_batches', 'N/A')}</div>
-                        <div class="metric"><strong>内存清理次数:</strong> {result.get('attack_stats', {}).get('memory_cleanups', 'N/A')}</div>
-                    </div>
+                    <table>
+                        <tr>
+                            <th>统计项目</th>
+                            <th>数值</th>
+                            <th>说明</th>
+                        </tr>
+                        <tr>
+                            <td>总批次数</td>
+                            <td>{self._get_attack_stats_with_fallback(result, 'total_batches')}</td>
+                            <td>攻击过程中处理的总批次数</td>
+                        </tr>
+                        <tr>
+                            <td>成功批次</td>
+                            <td class="success">{self._get_attack_stats_with_fallback(result, 'successful_batches')}</td>
+                            <td>成功生成对抗样本的批次数</td>
+                        </tr>
+                        <tr>
+                            <td>失败批次</td>
+                            <td class="danger">{self._get_attack_stats_with_fallback(result, 'failed_batches')}</td>
+                            <td>攻击失败的批次数</td>
+                        </tr>
+                        <tr>
+                            <td>内存清理次数</td>
+                            <td>{self._get_attack_stats_with_fallback(result, 'memory_cleanups')}</td>
+                            <td>评估过程中的内存清理次数</td>
+                        </tr>
+                        <tr>
+                            <td>评估状态</td>
+                            <td class="{'success' if result.get('attack_stats', {}) else 'warning'}">
+                                {"正常" if result.get('attack_stats', {}) else "统计数据收集异常"}
+                            </td>
+                            <td>性能统计数据收集状态</td>
+                        </tr>
+                    </table>
                 </div>
             </div>
         </body>
@@ -501,3 +561,67 @@ L∞范数 (最大扰动): {result['results']['perturbation_stats']['linf_norm']
         """获取已完成的评估列表（为了兼容性）"""
         # 这个方法可能被其他地方调用，返回空列表或从其他地方获取数据
         return []
+    
+    def _get_iteration_count(self, attack_config: Dict) -> str:
+        """获取迭代次数"""
+        params = attack_config.get('params', {})
+        
+        # 按优先级检查不同的参数名称
+        iteration_params = ['max_iter', 'nb_iter', 'nb_epochs', 'nn_model_epochs']
+        
+        for param_name in iteration_params:
+            if param_name in params and params[param_name] is not None:
+                return str(params[param_name])
+        
+        # 对于FGSM等单步攻击，返回1
+        if attack_config.get('algorithm') == 'FGSM':
+            return "1 (单步攻击)"
+        
+        return "未设置"
+    
+    def _get_attack_stats_with_fallback(self, result: Dict, stat_name: str) -> str:
+        """获取攻击统计数据，提供回退值"""
+        attack_stats = result.get('attack_stats', {})
+        
+        if not attack_stats or all(v == 0 for v in attack_stats.values()):
+            # 如果attack_stats为空或全为0，尝试从其他地方获取信息
+            if stat_name == 'total_batches':
+                sample_count = result.get('results', {}).get('sample_count', 0)
+                batch_size = result.get('evaluation_params', {}).get('batch_size', 32)
+                if sample_count > 0 and batch_size > 0:
+                    return str((sample_count + batch_size - 1) // batch_size)
+            elif stat_name == 'successful_batches':
+                return "数据收集中"
+            elif stat_name == 'failed_batches':
+                return "数据收集中"
+            elif stat_name == 'memory_cleanups':
+                return "数据收集中"
+        
+        return str(attack_stats.get(stat_name, 0))
+
+def _generate_defense_section(self, result):
+    """生成防御评估部分"""
+    if 'defense_metrics' not in result:
+        return ""
+    
+    defense_metrics = result['defense_metrics']
+    
+    return f"""
+    <div class="metric-section">
+        <h3>🛡️ 防御评估结果</h3>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <h4>对抗精度差距</h4>
+                <div class="metric-value">{defense_metrics.get('adversarial_accuracy_gap', 0):.3f}</div>
+            </div>
+            <div class="metric-card">
+                <h4>净化恢复率</h4>
+                <div class="metric-value">{defense_metrics.get('purification_recovery_rate', 0):.3f}</div>
+            </div>
+            <div class="metric-card">
+                <h4>干净样本准确率保持度</h4>
+                <div class="metric-value">{defense_metrics.get('clean_accuracy_preservation', 0):.3f}</div>
+            </div>
+        </div>
+    </div>
+    """

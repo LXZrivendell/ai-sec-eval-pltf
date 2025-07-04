@@ -147,3 +147,36 @@ class MetricsCalculator:
             return float(adjusted_score)
         
         return float(base_score)
+    
+    def calculate_defense_metrics(self, estimator, x_clean, y_true, x_adversarial, 
+                                x_purified, defense_config):
+        """计算防御评估指标"""
+        try:
+            # 基线指标
+            clean_acc = accuracy_score(y_true, estimator.predict(x_clean).argmax(axis=1))
+            adversarial_acc = accuracy_score(y_true, estimator.predict(x_adversarial).argmax(axis=1))
+            purified_acc = accuracy_score(y_true, estimator.predict(x_purified).argmax(axis=1))
+            
+            # 计算新指标
+            defense_metrics_calc = DefenseMetrics()
+            
+            metrics = {
+                'clean_accuracy': float(clean_acc),
+                'adversarial_accuracy': float(adversarial_acc),
+                'purified_accuracy': float(purified_acc),
+                'adversarial_accuracy_gap': defense_metrics_calc.calculate_adversarial_accuracy_gap(
+                    clean_acc, adversarial_acc
+                ),
+                'purification_recovery_rate': defense_metrics_calc.calculate_purification_recovery_rate(
+                    clean_acc, purified_acc, adversarial_acc
+                ),
+                'clean_accuracy_preservation': defense_metrics_calc.calculate_clean_accuracy_preservation(
+                    clean_acc, purified_acc
+                )
+            }
+            
+            return metrics
+            
+        except Exception as e:
+            st.error(f"计算防御指标失败: {str(e)}")
+            return None

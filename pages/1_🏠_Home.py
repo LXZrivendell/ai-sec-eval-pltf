@@ -100,7 +100,8 @@ with col1:
             st.metric(
                 label="🛡️ 评估历史",
                 value=len(evaluation_history),
-                delta="次评估"
+                #delta="次评估"
+                delta=f"总计 {attack_stats['total_configs']} 次"
             )
         
         # 存储使用情况

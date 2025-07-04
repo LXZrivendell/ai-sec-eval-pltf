@@ -12,6 +12,7 @@ from .evaluation import (
     EvaluationConfig, DataProcessor, ARTEstimatorManager,
     AttackExecutor, MemoryManager, MetricsCalculator, ResultManager
 )
+from .evaluation.defense_evaluator import DefenseEvaluator  # 添加这行
 from .visualization import ChartGenerator
 from .reporting import ReportGenerator
 
@@ -31,15 +32,11 @@ class SecurityEvaluator:
         self.attack_executor = AttackExecutor(self.attack_manager, self.memory_manager)
         self.metrics_calculator = MetricsCalculator()
         self.result_manager = ResultManager()
+        self.defense_evaluator = DefenseEvaluator()  # 现在应该可以正常工作
         
         # 可视化和报告组件
         self.chart_generator = ChartGenerator()
         self.report_generator = ReportGenerator()
-        
-        # 目录设置
-        self.results_dir = "data/evaluation_results"
-        self.reports_dir = "data/reports"
-        self._ensure_directories()
     
     def _ensure_directories(self):
         """确保必要的目录存在"""
@@ -263,6 +260,7 @@ class SecurityEvaluator:
             stats = {
                 'total_evaluations': 0,
                 'completed_evaluations': 0,
+                'running_evaluations': 0,
                 'evaluation_types': {},
                 'user_activity': {}
             }
@@ -271,16 +269,34 @@ class SecurityEvaluator:
             history = self.get_evaluation_history()
             stats['total_evaluations'] = len(history)
             stats['completed_evaluations'] = len([r for r in history if 'results' in r])
+            stats['running_evaluations'] = len([r for r in history if 'results' not in r])
             
             # 统计评估类型
             for result in history:
                 attack_name = result.get('attack_config', {}).get('algorithm_name', 'Unknown')
                 stats['evaluation_types'][attack_name] = stats['evaluation_types'].get(attack_name, 0) + 1
             
-            # 统计用户活动
+            # 统计用户活动 - 修复数据结构
             for result in history:
                 user_id = result.get('user_id', 'anonymous')
-                stats['user_activity'][user_id] = stats['user_activity'].get(user_id, 0) + 1
+                if user_id not in stats['user_activity']:
+                    stats['user_activity'][user_id] = {
+                        'total': 0,
+                        'completed': 0,
+                        'running': 0,
+                        'failed': 0
+                    }
+                
+                stats['user_activity'][user_id]['total'] += 1
+                
+                # 根据结果状态分类
+                if 'results' in result:
+                    if result.get('results', {}).get('error'):
+                        stats['user_activity'][user_id]['failed'] += 1
+                    else:
+                        stats['user_activity'][user_id]['completed'] += 1
+                else:
+                    stats['user_activity'][user_id]['running'] += 1
             
             return stats
             
@@ -289,6 +305,40 @@ class SecurityEvaluator:
             return {
                 'total_evaluations': 0,
                 'completed_evaluations': 0,
+                'running_evaluations': 0,
                 'evaluation_types': {},
                 'user_activity': {}
             }
+    
+    def evaluate_model_with_defense(self, model_info, dataset_info, 
+                                  attack_config, defense_config, evaluation_params):
+        """带防御的模型评估"""
+        try:
+            # 1. 执行基础攻击评估
+            attack_result = self.evaluate_model_robustness(
+                model_info, dataset_info, attack_config, evaluation_params
+            )
+            
+            if 'error' in attack_result:
+                return attack_result
+            
+            # 2. 执行防御评估
+            defense_result = self.defense_evaluator.evaluate_defense(
+                attack_result['model'], 
+                attack_result['clean_data'],
+                attack_result['labels'],
+                attack_result['adversarial_samples'],
+                defense_config
+            )
+            
+            # 3. 合并结果
+            combined_result = {
+                **attack_result,
+                'defense_metrics': defense_result,
+                'evaluation_type': 'attack_and_defense'
+            }
+            
+            return combined_result
+            
+        except Exception as e:
+            return {"error": f"带防御的评估失败: {str(e)}"}
