@@ -108,6 +108,10 @@ class ReportGenerator:
                             <span class="danger">{result['results']['adversarial_accuracy']:.3f}</span>
                         </div>
                         <div class="metric">
+                            <strong>对抗精度差距:</strong> 
+                            <span class="{self._get_gap_class(result['results'].get('adversarial_accuracy_gap', result['results']['original_accuracy'] - result['results']['adversarial_accuracy']))}">{result['results'].get('adversarial_accuracy_gap', result['results']['original_accuracy'] - result['results']['adversarial_accuracy']):.3f}</span>
+                        </div>
+                        <div class="metric">
                             <strong>攻击成功率:</strong> 
                             <span class="warning">{result['results']['attack_success_rate']:.3f}</span>
                         </div>
@@ -599,29 +603,38 @@ L∞范数 (最大扰动): {result['results']['perturbation_stats']['linf_norm']
         
         return str(attack_stats.get(stat_name, 0))
 
-def _generate_defense_section(self, result):
-    """生成防御评估部分"""
-    if 'defense_metrics' not in result:
-        return ""
-    
-    defense_metrics = result['defense_metrics']
-    
-    return f"""
-    <div class="metric-section">
-        <h3>🛡️ 防御评估结果</h3>
-        <div class="metrics-grid">
-            <div class="metric-card">
-                <h4>对抗精度差距</h4>
-                <div class="metric-value">{defense_metrics.get('adversarial_accuracy_gap', 0):.3f}</div>
-            </div>
-            <div class="metric-card">
-                <h4>净化恢复率</h4>
-                <div class="metric-value">{defense_metrics.get('purification_recovery_rate', 0):.3f}</div>
-            </div>
-            <div class="metric-card">
-                <h4>干净样本准确率保持度</h4>
-                <div class="metric-value">{defense_metrics.get('clean_accuracy_preservation', 0):.3f}</div>
+    def _generate_defense_section(self, result):
+        """生成防御评估部分"""
+        if 'defense_metrics' not in result:
+            return ""
+        
+        defense_metrics = result['defense_metrics']
+        
+        return f"""
+        <div class="metric-section">
+            <h3>🛡️ 防御评估结果</h3>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h4>对抗精度差距</h4>
+                    <div class="metric-value">{defense_metrics.get('adversarial_accuracy_gap', 0):.3f}</div>
+                </div>
+                <div class="metric-card">
+                    <h4>净化恢复率</h4>
+                    <div class="metric-value">{defense_metrics.get('purification_recovery_rate', 0):.3f}</div>
+                </div>
+                <div class="metric-card">
+                    <h4>干净样本准确率保持度</h4>
+                    <div class="metric-value">{defense_metrics.get('clean_accuracy_preservation', 0):.3f}</div>
+                </div>
             </div>
         </div>
-    </div>
-    """
+        """
+        
+    def _get_gap_class(self, gap: float) -> str:
+        """根据对抗精度差距返回CSS类"""
+        if gap <= 0.1:
+            return "success"  # 差距小，模型鲁棒
+        elif gap <= 0.3:
+            return "warning"  # 差距中等
+        else:
+            return "danger"   # 差距大，模型脆弱

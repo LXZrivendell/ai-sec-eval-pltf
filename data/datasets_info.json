@@ -40,5 +40,47 @@
       }
     },
     "is_builtin": false
+  },
+  "admin_wwwww_20250704_185101": {
+    "dataset_name": "wwwww",
+    "description": "",
+    "dataset_type": "array",
+    "file_name": "admin_wwwww_20250704_185101.npz",
+    "file_path": "data/datasets/user/admin_wwwww_20250704_185101.npz",
+    "file_size": 42354133,
+    "file_hash": "889370fbd0032d7975710a9599d02999",
+    "uploaded_by": "admin",
+    "upload_time": "2025-07-04T18:51:03.242445",
+    "validation_status": "valid",
+    "validation_message": "数据集验证成功",
+    "metadata": {
+      "files": [
+        "images",
+        "labels",
+        "preprocessing_info"
+      ],
+      "arrays_info": {
+        "images": {
+          "shape": [
+            10000,
+            3,
+            32,
+            32
+          ],
+          "dtype": "float32"
+        },
+        "labels": {
+          "shape": [
+            10000
+          ],
+          "dtype": "int64"
+        },
+        "preprocessing_info": {
+          "shape": [],
+          "dtype": "object"
+        }
+      }
+    },
+    "is_builtin": false
   }
 }

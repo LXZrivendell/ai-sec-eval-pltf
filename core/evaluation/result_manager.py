@@ -4,12 +4,14 @@ import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 import streamlit as st
+from ..defense.defense_metrics import DefenseMetrics
 
 class ResultManager:
     """评估结果管理类"""
     
     def __init__(self, results_dir: str = "data/evaluation_results"):
         self.results_dir = results_dir
+        self.defense_metrics = DefenseMetrics()  # 添加防御指标计算器
         self._ensure_directories()
     
     def _ensure_directories(self):
@@ -24,6 +26,13 @@ class ResultManager:
         try:
             evaluation_id = f"eval_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             
+            # 计算对抗精度差距
+            original_acc = baseline_metrics['original_accuracy']
+            adversarial_acc = attack_metrics['adversarial_accuracy']
+            adversarial_accuracy_gap = self.defense_metrics.calculate_adversarial_accuracy_gap(
+                original_acc, adversarial_acc
+            )
+            
             evaluation_result = {
                 "evaluation_id": evaluation_id,
                 "timestamp": datetime.now().isoformat(),
@@ -34,6 +43,7 @@ class ResultManager:
                 "results": {
                     "original_accuracy": baseline_metrics['original_accuracy'],
                     "adversarial_accuracy": attack_metrics['adversarial_accuracy'],
+                    "adversarial_accuracy_gap": adversarial_accuracy_gap,  # 添加对抗精度差距
                     "attack_success_rate": attack_metrics['attack_success_rate'],
                     "robustness_score": attack_metrics['robustness_score'],
                     "perturbation_stats": attack_metrics['perturbation_stats'],
